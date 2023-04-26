@@ -179,11 +179,11 @@ alpine:latest           | Plus légère comme image, tournant autour des 4 Mo | 
 php:8.1                 | Elle se base sur l'alpine, du coup, on récupère de façon implicite les avantages de l'image alpine. sauf que plus besoin d'installer les dépendances à php car l'image de base contient déjà php installé et quelques dépendances      | L'image ne contient pas toutes les dépendances de php, et il faut installer apache2 et compiler quelques paquets propres à php |
 debian:stable-slim      | Elle offre une environnement similaire à des débian classiques, sauf qu'avec des packages de base qui sont désinstallées. Il est d'ailleurs comme son nom l'indique plus slim que le debian de base.                                 | On observe qu'on se retrouvera avec quasiment la même taille que l'ubuntu de base, car il faudra installer un bon nombre de packages pour arriver à nextcloud fonctionnel.
 
-### Etape 4: Création de l'image Docker basée sur une alternative légère.
+### Etape 4: Création de l'image Docker basée sur une alternative légère
 
 On pourrait bien aller sur une alpine de base ou un php:8.1 de base, dans un premier temps, la solution alternative se basera sur une debian-slim pour rester sur le même scope que l'ubuntu utilisée pour la première image mais en utilisant des astuces pour réduire le nombre de couche, pour optimiser l'image et faciliter sa lisibilé.
 
-* Nouveau dockerfile
+* Nouveau dockerfile sur debian-slim
 
 ```dockerfile
 FROM debian:stable-slim
@@ -220,6 +220,59 @@ CMD ["apachectl", "-D", "FOREGROUND"]
 # apachectl, -D, FOREGROUND
 ```
 
+* Nouveau dockerfile sur php-alpine
+
+```dockerfile
+FROM php:8.1-fpm-alpine3.16
+
+RUN set -ex; \
+    \
+    apk add --no-cache --virtual .build-deps \
+        apache2-proxy \
+        unzip \
+        php8-fpm \
+        autoconf \
+        freetype-dev \
+        gmp-dev \
+        icu-dev \
+        imagemagick-dev \
+        libevent-dev \
+        libjpeg-turbo-dev \
+        libmcrypt-dev \
+        libmemcached-dev \
+        libpng-dev \
+        libwebp-dev \
+        libxml2-dev \
+        libzip-dev \
+        pcre-dev \
+    ; \
+    \
+    docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp; \
+    docker-php-ext-install -j "$(nproc)" \
+        bcmath \
+        exif \
+        gd \
+        gmp \
+        intl \
+        opcache \
+        pcntl \
+        pdo_mysql \
+        sysvsem \
+        zip \
+    ;
+
+WORKDIR /var/www/
+
+RUN set -ex; \
+    rm -rf /etc/apache2/conf.d/default.conf; \
+    wget https://download.nextcloud.com/server/releases/latest.zip; \
+    unzip latest.zip; rm latest.zip; chown www-data:www-data -R nextcloud;
+
+ADD conf/nextcloud.conf /etc/apache2/conf.d/nextcloud.conf
+
+CMD httpd -k start && php-fpm
+```
+
 * Build de la nvelle image
   
 ```console
@@ -246,11 +299,8 @@ CONTAINER ID   IMAGE          COMMAND                  CREATED              STAT
 
 ```console
 delbechir@bngameni:~$ docker images | grep nextcloud
-nextcloud                                            v2            298e9f8e7890   18 minutes ago   707MB
+nextcloud                                            v2            8c070f8f458b   8 hours ago      682MB
 nextcloud                                            v1            3d2b3c34c32d   2 hours ago      1.47GB
 ```
 
 NB: la v2 charge beaucoup plus vite que la v1 et occupe moins d'espace
-
-
-
