@@ -223,6 +223,7 @@ CMD ["apachectl", "-D", "FOREGROUND"]
 * Nouveau dockerfile sur php-alpine
 
 ```dockerfile
+
 FROM php:8.1-fpm-alpine3.16
 
 RUN set -ex; \
@@ -266,11 +267,13 @@ WORKDIR /var/www/
 RUN set -ex; \
     rm -rf /etc/apache2/conf.d/default.conf; \
     wget https://download.nextcloud.com/server/releases/latest.zip; \
-    unzip latest.zip; rm latest.zip; chown www-data:www-data -R nextcloud;
+    unzip latest.zip; rm latest.zip; chown www-data:www-data -R /var/www/; \
+    chown -R www-data:root /var/log/ /etc/apache2/ /run/ ;
 
 ADD conf/nextcloud.conf /etc/apache2/conf.d/nextcloud.conf
 
 CMD httpd -k start && php-fpm
+
 ```
 
 * Build de la nvelle image
