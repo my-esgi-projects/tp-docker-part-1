@@ -42,7 +42,8 @@ WORKDIR /var/www/
 RUN set -ex; \
     rm -rf /etc/apache2/conf.d/default.conf; \
     wget https://download.nextcloud.com/server/releases/latest.zip; \
-    unzip latest.zip; rm latest.zip; chown www-data:www-data -R nextcloud;
+    unzip latest.zip; rm latest.zip; chown www-data:www-data -R /var/www/; \
+    chown -R www-data:root /var/log/ /etc/apache2/ /run/ ;
 
 ADD conf/nextcloud.conf /etc/apache2/conf.d/nextcloud.conf
 
