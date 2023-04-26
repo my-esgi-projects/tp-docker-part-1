@@ -1,0 +1,4 @@
+php-alpine/nextcloud
+*.log
+.env
+**/*.log
